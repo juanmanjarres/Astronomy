@@ -1,0 +1,2 @@
+model_checkpoint_path: "SDSS500.weights"
+all_model_checkpoint_paths: "SDSS500.weights"
