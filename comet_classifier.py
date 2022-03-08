@@ -41,24 +41,26 @@ def CNN():
     return model
 
 
-def train_CNN(images):
+def train_CNN(image_set, truth):
     batch_size = 30
     epochs = 100
 
     img_data_npy = []
     expected_res = []
-    # If train_CNN is called, then we know the number of images is 5
-    for i in range(5):
-        #data = images[i][1].data  # This is a numpy.ndarray
-        #print("The data on image: " + str(data))
-        #img_data_npy.append(data)
-        img_data_npy.append(images[i])
-        expected_res.append(tf.Tensor(True, dtype=bool))
+
+    for index in range(len(image_set)):
+        # there is only 5 images per comet, for now
+        for i in range(5):
+            #data = images[i][1].data  # This is a numpy.ndarray
+            #print("The data on image: " + str(data))
+            #img_data_npy.append(data)
+            img_data_npy.append(image_set[index][i])
+            expected_res.append(tf.Tensor(True, dtype=bool))
+
     model = CNN()
 
     #print("The image data:" + str(img_data_npy))
     model.fit(img_data_npy, expected_res,  batch_size=batch_size, epochs=epochs)
-
 
 
 
@@ -67,15 +69,41 @@ image_data = fits.getdata("NASA_data/train/cmt0038/22257681.fts", ext=0)
 
 filepath = ""
 
+truth_file = open("NASA_data/train-gt.txt", 'r')
+truth_data = {}
+for line in truth_file:
+    info = line.split(',')
+    # each line contains {cometid} [{image_name}, {x_coord}, {y_coord}] ... {confidence}
+    comet_id = info[0]
+    truth_data[comet_id] = {}
+
+    # this accounts for the initial cometid and confidence at the end
+    # and because there is 3 objects per image
+    img_amount = (len(info) - 2) // 3
+    for i in range(0, img_amount):
+        image_name = info[(3 * i) + 1]
+        x_coord = info[(3 * i) + 2]
+        y_coord = info[(3 * i) + 3]
+        truth_data[comet_id][image_name] = [x_coord, y_coord]
+
+#print(truth_data)
+
+set_5_image = []
+set_5_image_truth = []
 
 
 for comet_number in range(38, 2000):
+    comet_truth = {}
+
     if 1000 > comet_number >= 100:
         filepath = "NASA_data/train/cmt0" + str(comet_number) + "/*.fts"
+        comet_truth = truth_data["cmt0" + str(comet_number)]
     elif comet_number < 100:
         filepath = "NASA_data/train/cmt00" + str(comet_number) + "/*.fts"
+        comet_truth = truth_data["cmt00" + str(comet_number)]
     else:
         filepath = "NASA_data/train/cmt" + str(comet_number) + "/*.fts"
+        comet_truth = truth_data["cmt" + str(comet_number)]
 
     number_of_images = 0
     images = []
@@ -98,13 +126,13 @@ for comet_number in range(38, 2000):
 
     print("Number of images for comet " + str(comet_number) + " :" + str(number_of_images))
     if number_of_images == 5:
-        # Create the neural network with 5 inputs
-        train_CNN(images)
+        # If the number of images is 5, add the comet to the list for training
+        set_5_image.append(images)
+        set_5_image_truth.append(comet_truth)
 
 
 
-    
-
+train_CNN(set_5_image, set_5_image_truth)
 
 
 plt.figure()

@@ -144,6 +144,12 @@ def train_CNN(X, Y, ntrain, nval, output="test", verbose=False):
 
         datagen.fit(X_train)
 
+        print("####### X images:")
+        print(X_train)
+
+        print("##### Y data:")
+        print(Y_train)
+
         history2 = model.fit(
             datagen.flow(X_train, Y_train, batch_size=batch_size),
             steps_per_epoch=X_train.shape[0]//batch_size,
