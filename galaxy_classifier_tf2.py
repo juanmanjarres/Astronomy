@@ -146,9 +146,11 @@ def train_CNN(X, Y, ntrain, nval, output="test", verbose=False):
 
         print("####### X images:")
         print(X_train)
+        print("X Shape: " + str(X_train.shape))
 
         print("##### Y data:")
         print(Y_train)
+        print("Y shape: " + str(Y_train.shape))
 
         history2 = model.fit(
             datagen.flow(X_train, Y_train, batch_size=batch_size),

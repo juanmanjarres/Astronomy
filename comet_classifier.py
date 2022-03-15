@@ -1,3 +1,5 @@
+import os.path
+
 import keras.activations
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -26,8 +28,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 def CNN():
     input_list = []
     # Creates the CNN for 5 images
-    for i in range(5):
-        input_list.append(Input(shape=(1024, )))
+    for i in range(9):
+        input_list.append(Input(shape=(1024, 1024, )))
     merged = Concatenate()(input_list)
     dense1 = Dense(5, input_dim=5, activation='sigmoid', use_bias=True)(merged)
     output = Dense(1, activation='relu')(dense1)
@@ -36,30 +38,54 @@ def CNN():
     print("==============")
     print(model.summary())
 
-    model.compile(loss='binary_crossentropy', optimizer='adam')
+    model.compile(loss='hinge', optimizer='adam')
 
     return model
 
 
-def train_CNN(image_set, truth):
+def train_CNN(image_set, truth, filenames):
     batch_size = 30
     epochs = 100
 
+    print("Filenames:")
+    print(filenames)
+    print("#### Image_set shape:" + str(image_set.shape))
+    #print(image_set)
     img_data_npy = []
     expected_res = []
 
-    for index in range(len(image_set)):
-        # there is only 5 images per comet, for now
-        for i in range(5):
+    for comet_num in range(len(image_set)):
+        comet_res = []
+        img_data_per_comet = []
+        for img_num in range(len(image_set[0])):
             #data = images[i][1].data  # This is a numpy.ndarray
             #print("The data on image: " + str(data))
             #img_data_npy.append(data)
-            img_data_npy.append(image_set[index][i])
-            expected_res.append(tf.Tensor(True, dtype=bool))
+            #TODO fix this, appending one per image instead of one per comet
+            img_data_per_comet.append(image_set[comet_num][img_num])
+            print("Truth values: ")
+            print(truth)
+            image_filename = filenames[comet_num][img_num]
+            print("Index: " + str(comet_num + 1))
+            print("Image filename:")
+            print(image_filename)
+            comet_res.append(truth[comet_num + 1][image_filename])
+        img_data_npy.append(np.asarray(img_data_per_comet))
+        expected_res.append(np.asarray(comet_res))
 
     model = CNN()
 
+    #img_data_npy = np.asarray(img_data_npy)
+    #expected_res = np.asarray(expected_res)
     #print("The image data:" + str(img_data_npy))
+    print("The truth data: " + str(expected_res))
+
+    #img_rows, img_cols = img_data_npy.shape[1:3]
+    img_channels = 5 #TODO wtf is this
+
+    #print("#### Shape before reshape: " + str(img_data_npy.shape))
+    #img_data_npy = img_data_npy.reshape(img_data_npy.shape[0], 5, 1024, -1)
+    #print("Shape: " + str(img_data_npy.shape))
     model.fit(img_data_npy, expected_res,  batch_size=batch_size, epochs=epochs)
 
 
@@ -89,24 +115,30 @@ for line in truth_file:
 #print(truth_data)
 
 set_5_image = []
-set_5_image_truth = []
+set_5_image_truth = {}
+set_5_image_filenames = []
 
 
-for comet_number in range(38, 2000):
+#TODO change this to 38, 2000
+for comet_number in range(1, 10):
     comet_truth = {}
 
     if 1000 > comet_number >= 100:
-        filepath = "NASA_data/train/cmt0" + str(comet_number) + "/*.fts"
+        filepath = "NASA_data/train-sample/cmt0" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt0" + str(comet_number)]
-    elif comet_number < 100:
-        filepath = "NASA_data/train/cmt00" + str(comet_number) + "/*.fts"
+    elif 10 <= comet_number < 100:
+        filepath = "NASA_data/train-sample/cmt00" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt00" + str(comet_number)]
+    elif comet_number < 10:
+        filepath = "NASA_data/train-sample/cmt000" + str(comet_number) + "/*.fts"
+        comet_truth = truth_data["cmt000" + str(comet_number)]
     else:
-        filepath = "NASA_data/train/cmt" + str(comet_number) + "/*.fts"
+        filepath = "NASA_data/train-sample/cmt" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt" + str(comet_number)]
 
     number_of_images = 0
     images = []
+    image_names = []
     for filename in glob.glob(filepath):
         with fits.open(filename) as opened_img:
             number_of_images += 1
@@ -121,18 +153,20 @@ for comet_number in range(38, 2000):
             img = image_decode_fits(img, 0)  # 0 for the header
 
             images.append(img)
+            image_names.append(os.path.basename(filename))
 
             #print(opened_img.info())
 
     print("Number of images for comet " + str(comet_number) + " :" + str(number_of_images))
-    if number_of_images == 5:
-        # If the number of images is 5, add the comet to the list for training
-        set_5_image.append(images)
-        set_5_image_truth.append(comet_truth)
+    if number_of_images >= 5:
+        # If the number of images is equal or more than 5, add the comet to the list for training
+        set_5_image.append(images[0:5])
+        set_5_image_truth[comet_number] = comet_truth
+        set_5_image_filenames.append(image_names[0:5])
 
+set_5_image = np.asarray(set_5_image)
 
-
-train_CNN(set_5_image, set_5_image_truth)
+train_CNN(set_5_image, set_5_image_truth, set_5_image_filenames)
 
 
 plt.figure()
