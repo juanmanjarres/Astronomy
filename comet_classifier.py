@@ -32,13 +32,14 @@ def CNN():
         input_list.append(Input(shape=(1024, 1024, )))
     merged = Concatenate()(input_list)
     dense1 = Dense(5, input_dim=5, activation='sigmoid', use_bias=True)(merged)
-    output = Dense(1, activation='relu')(dense1)
+    flatten = Flatten()(dense1)
+    output = Dense(2, activation='relu')(flatten)
     model = Model(inputs=input_list, outputs=output)
     print("Model Summary:")
     print("==============")
     print(model.summary())
 
-    model.compile(loss='hinge', optimizer='adam')
+    model.compile(loss='mean_squared_error', optimizer='adam')
 
     return model
 
@@ -110,7 +111,7 @@ for line in truth_file:
         image_name = info[(3 * i) + 1]
         x_coord = info[(3 * i) + 2]
         y_coord = info[(3 * i) + 3]
-        truth_data[comet_id][image_name] = [x_coord, y_coord]
+        truth_data[comet_id][image_name] = [float(x_coord), float(y_coord)]
 
 #print(truth_data)
 
