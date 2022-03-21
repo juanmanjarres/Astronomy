@@ -17,4 +17,4 @@ Execute `galaxy_classifier_tf2.py`. This will create the weight data for all the
 First, get the data from the NASA AWS bucket, the details can be found on [this website](https://www.topcoder.com/challenges/fcad16e0-9ca6-4510-8bd9-af3ed026b140?utm_source=community&utm_campaign=NASASoho&utm_medium=promotion).  
 Then copy this data to the root folder of the project.
 
-Execute comet_classifier.py. This will run the model for the classifier and give the overall accuracy based on the input images.
+Execute comet_cnn.py. This will run the model for the regression and give an estimate for the location of a comet in the image.

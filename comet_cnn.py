@@ -26,9 +26,28 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 
+def CNN():
+    input_list = []
+    # Creates the CNN for 5 images
+    for i in range(5):
+        input_list.append(Input(shape=(1024, 1024,)))
+    merged = Concatenate()(input_list)
+    dense1 = Dense(5, input_dim=5, activation='sigmoid', use_bias=True)(merged)
+    flatten = Flatten()(dense1)
+    output = Dense(2, activation='relu')(flatten)
+    model = Model(inputs=input_list, outputs=output)
+    print("Model Summary:")
+    print("==============")
+    print(model.summary())
+
+    model.compile(loss='mean_squared_error', optimizer='adam')
+
+    return model
+
+
 def train_CNN(image_set, truth, filenames):
     batch_size = 30
-    epochs = 20
+    epochs = 100
 
     print("Filenames:")
     print(filenames)
@@ -56,22 +75,27 @@ def train_CNN(image_set, truth, filenames):
         img_data_npy.append(np.asarray(img_data_per_comet))
         expected_res.append(np.asarray(comet_res))
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((img_data_npy, expected_res))
+    model = CNN()
 
-    model = tf.keras.Sequential([
-        tf.keras.layers.Flatten(input_shape=(1024, 1024)),
-        tf.keras.layers.Dense(128),
-        tf.keras.layers.Dense(2)
-    ])
+    # img_data_npy = np.asarray(img_data_npy)
+    # expected_res = np.asarray(expected_res)
+    # print("The image data:" + str(img_data_npy))
+    print("The truth data: " + str(expected_res))
 
-    model.compile(optimizer='adagrad',
-                  loss='mean_squared_error',
-                  metrics=['accuracy'])
+    # img_rows, img_cols = img_data_npy.shape[1:3]
+    img_channels = 5  # TODO wtf is this
 
-    model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
+    # print("#### Shape before reshape: " + str(img_data_npy.shape))
+    # img_data_npy = img_data_npy.reshape(img_data_npy.shape[0], 5, 1024, -1)
+    # print("Shape: " + str(img_data_npy.shape))
+    model.fit(img_data_npy, expected_res, batch_size=batch_size, epochs=epochs)
+
+    print("Saving model...")
+    # save weights
+    model.save_weights("comet_classifier.weights", overwrite=True)
 
 
-fits_image = fits.open("NASA_data/train/cmt0038/22257681.fts")
+
 image_data = fits.getdata("NASA_data/train/cmt0038/22257681.fts", ext=0)
 
 filepath = ""
