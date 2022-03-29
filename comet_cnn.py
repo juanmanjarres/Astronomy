@@ -92,7 +92,7 @@ def train_CNN(image_set, truth, filenames):
 
     print("Saving model...")
     # save weights
-    model.save_weights("comet_classifier.weights", overwrite=True)
+    model.save_weights("comet_cnn.weights", overwrite=True)
 
 
 

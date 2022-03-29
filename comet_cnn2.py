@@ -19,6 +19,8 @@ from tf_fits.image import image_decode_fits
 import random
 import glob
 
+import visualkeras
+
 from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
 
@@ -28,7 +30,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 
 def train_CNN(image_set, truth, filenames):
     batch_size = 30
-    epochs = 20
+    epochs = 70
 
     print("Filenames:")
     print(filenames)
@@ -37,38 +39,42 @@ def train_CNN(image_set, truth, filenames):
     img_data_npy = []
     expected_res = []
 
+    comet_count = 0
     for comet_num in range(len(image_set)):
-        comet_res = []
-        img_data_per_comet = []
-        for img_num in range(len(image_set[0])):
-            # data = images[i][1].data  # This is a numpy.ndarray
-            # print("The data on image: " + str(data))
-            # img_data_npy.append(data)
-            # TODO fix this, appending one per image instead of one per comet
-            img_data_per_comet.append(image_set[comet_num][img_num])
-            print("Truth values: ")
-            print(truth)
-            image_filename = filenames[comet_num][img_num]
-            print("Index: " + str(comet_num + 1))
-            print("Image filename:")
-            print(image_filename)
-            comet_res.append(truth[comet_num + 1][image_filename])
-        img_data_npy.append(np.asarray(img_data_per_comet))
-        expected_res.append(np.asarray(comet_res))
+        if (comet_num + 38) in truth.keys():
+            comet_res = []
+            img_data_per_comet = []
+            for img_num in range(len(image_set[0])):
+                # data = images[i][1].data  # This is a numpy.ndarray
+                # print("The data on image: " + str(data))
+                # img_data_npy.append(data)
+                # TODO fix this, appending one per image instead of one per comet
+                img_data_per_comet.append(image_set[comet_num][img_num])
+                print("Truth values: ")
+                print(truth)
+                image_filename = filenames[comet_count][img_num]
+                print("Index: " + str(comet_num + 38))
+                print("Image filename:")
+                print(image_filename)
+                comet_res.append(truth[comet_num + 38][image_filename])
+            img_data_npy.append(np.asarray(img_data_per_comet))
+            expected_res.append(np.asarray(comet_res))
+            comet_count += 1
 
     train_dataset = tf.data.Dataset.from_tensor_slices((img_data_npy, expected_res))
 
-    input_list = []
-    for i in range(5):
-        input_list.append(Input(shape=(1024, 1024, )))
-    merged = Concatenate()(input_list)
-    dense1 = Dense(5)(merged)
-    dense2 = Dense(5)(dense1)
+    # input_list = []
+    # for i in range(5):
+    #     input_list.append(Input(shape=(1024, 1024, )))
+    input = Input(shape=(1024, 1024, ))
+    #merged = Concatenate()(input_list)
+    dense1 = Dense(7)(input)
+    dense2 = Dense(7)(dense1)
     flatten = Flatten()(dense2)
 
     output = Dense(2)(flatten)
 
-    model = Model(inputs=input_list, outputs=output)
+    model = Model(inputs=input, outputs=output)
 
     # model = tf.keras.Sequential([
     #     [Input(shape=(1024, 1024)),
@@ -81,15 +87,25 @@ def train_CNN(image_set, truth, filenames):
     #     Dense(2)
     # ])
 
-    model.compile(optimizer='adagrad',
-                  loss='mean_squared_error',
+    model.compile(optimizer='adam',
+                  loss='mean_absolute_error',
                   metrics=['accuracy'])
 
-    model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
+    #visualkeras.layered_view(model).show()
+    history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
 
+    plt.plot(history.history['accuracy'])
+    plt.title('Mean Squared Error accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.show()
 
-fits_image = fits.open("NASA_data/train/cmt0038/22257681.fts")
-image_data = fits.getdata("NASA_data/train/cmt0038/22257681.fts", ext=0)
+    plt.plot(history.history['loss'])
+    plt.title("Mean Squared Error loss")
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.show()
+
 
 filepath = ""
 
@@ -117,20 +133,20 @@ set_5_image_truth = {}
 set_5_image_filenames = []
 
 # TODO change this to 38, 2000
-for comet_number in range(1, 10):
+for comet_number in range(38, 139):
     comet_truth = {}
 
     if 1000 > comet_number >= 100:
-        filepath = "NASA_data/train-sample/cmt0" + str(comet_number) + "/*.fts"
+        filepath = "NASA_data/train/cmt0" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt0" + str(comet_number)]
     elif 10 <= comet_number < 100:
-        filepath = "NASA_data/train-sample/cmt00" + str(comet_number) + "/*.fts"
+        filepath = "NASA_data/train/cmt00" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt00" + str(comet_number)]
     elif comet_number < 10:
-        filepath = "NASA_data/train-sample/cmt000" + str(comet_number) + "/*.fts"
+        filepath = "NASA_data/train/cmt000" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt000" + str(comet_number)]
     else:
-        filepath = "NASA_data/train-sample/cmt" + str(comet_number) + "/*.fts"
+        filepath = "NASA_data/train/cmt" + str(comet_number) + "/*.fts"
         comet_truth = truth_data["cmt" + str(comet_number)]
 
     number_of_images = 0
@@ -165,7 +181,30 @@ set_5_image = np.asarray(set_5_image)
 
 train_CNN(set_5_image, set_5_image_truth, set_5_image_filenames)
 
-plt.figure()
-plt.imshow(image_data, cmap='gray')
-plt.colorbar()
-plt.show()
+
+images = ["NASA_data/train/cmt0039/22291228.fts",
+          "NASA_data/train/cmt0039/22291229.fts",
+          "NASA_data/train/cmt0039/22291230.fts",
+          "NASA_data/train/cmt0039/22291231.fts",
+          "NASA_data/train/cmt0039/22291232.fts"]
+
+fig = plt.figure(figsize=(10, 7))
+
+rows = 5
+columns = 1
+counter = 1
+for img_filename in images:
+    img_data = fits.getdata(img_filename, ext=0)
+    fig.add_subplot(rows, columns, counter)
+    plt.imshow(img_data, cmap='gray')
+    plt.axis('off')
+    counter += 1
+
+#plt.show()
+#image_data1 = fits.getdata("NASA_data/train/cmt0038/22257681.fts", ext=0)
+
+#
+# plt.figure()
+# plt.imshow(image_data, cmap='gray')
+# #plt.colorbar()
+# plt.show()
